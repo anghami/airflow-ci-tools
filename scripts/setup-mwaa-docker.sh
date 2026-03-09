@@ -44,43 +44,22 @@ fi
 echo "Building MWAA Docker image for Airflow ${VERSION}..."
 cd "$MWAA_DIR/images/airflow/${VERSION}"
 
-# Create a simple docker-compose for CI
-cat > docker-compose.ci.yml << EOF
-version: '3.8'
+# Use the existing docker-compose.yaml that comes with MWAA
+if [ -f "docker-compose.yaml" ]; then
+    echo "Using MWAA's docker-compose.yaml to build the image..."
+    # Build using the existing MWAA docker-compose
+    docker-compose build
 
-services:
-  airflow:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: mwaa-local:${VERSION}
-    container_name: airflow-ci-${VERSION}
-    environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
-      - AIRFLOW__CORE__LOAD_DEFAULT_CONNECTIONS=False
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////usr/local/airflow/airflow.db
-      - AIRFLOW_HOME=/usr/local/airflow
-      - PYTHONPATH=/usr/local/airflow/dags
-    volumes:
-      - airflow-db:/usr/local/airflow
-    ports:
-      - "8080:8080"
-    healthcheck:
-      test: ["CMD", "airflow", "db", "check"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-    command: >
-      bash -c "airflow db init &&
-               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
-               tail -f /dev/null"
-
-volumes:
-  airflow-db:
-EOF
-
-# Build the image
-docker-compose -f docker-compose.ci.yml build
+    # Tag the image for our use (MWAA uses local-runner as image name)
+    echo "Tagging image as mwaa-local:${VERSION}..."
+    docker tag local-runner:latest-amd64 mwaa-local:${VERSION} 2>/dev/null || \
+    docker tag local-runner:latest mwaa-local:${VERSION} 2>/dev/null || \
+    echo "Note: Image might already be tagged or have different architecture tag"
+else
+    echo "Error: docker-compose.yaml not found in MWAA directory"
+    echo "Available files:"
+    ls -la
+    exit 1
+fi
 
 echo "MWAA Docker setup completed successfully"
