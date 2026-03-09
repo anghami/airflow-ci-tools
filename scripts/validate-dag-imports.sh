@@ -155,8 +155,8 @@ if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
     cp "$REQUIREMENTS_FILE" "$TEMP_REQUIREMENTS"
 
     # Update constraints URL to match Airflow version
-    sed -i.bak "s|constraints-[0-9.]*|constraints-${VERSION}|g" "$TEMP_REQUIREMENTS" 2>/dev/null || \
-    sed -i "" "s|constraints-[0-9.]*|constraints-${VERSION}|g" "$TEMP_REQUIREMENTS" 2>/dev/null || true
+    sed -i.bak "s|constraints-[0-9.]\+/|constraints-${VERSION}/|g" "$TEMP_REQUIREMENTS" 2>/dev/null || \
+    sed -i "" "s|constraints-[0-9.]\+/|constraints-${VERSION}/|g" "$TEMP_REQUIREMENTS" 2>/dev/null || true
 
     DOCKER_CMD="$DOCKER_CMD -v \"$TEMP_REQUIREMENTS:/tmp/requirements.txt:ro\""
 
