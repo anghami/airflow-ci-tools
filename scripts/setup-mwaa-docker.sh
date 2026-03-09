@@ -47,8 +47,8 @@ cd "$MWAA_DIR/images/airflow/${VERSION}"
 # Use the existing docker-compose.yaml that comes with MWAA
 if [ -f "docker-compose.yaml" ]; then
     echo "Using MWAA's docker-compose.yaml to build the image..."
-    # Build using the existing MWAA docker-compose
-    docker-compose build
+    # Build using the existing MWAA docker-compose (use Docker Compose V2)
+    docker compose build
 
     # Tag the image for our use (MWAA uses local-runner as image name)
     echo "Tagging image as mwaa-local:${VERSION}..."

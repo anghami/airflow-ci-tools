@@ -45,7 +45,7 @@ from pathlib import Path
 import json
 
 # Add DAGs path to Python path
-dags_path = sys.argv[1] if len(sys.argv) > 1 else '/usr/local/airflow/dags'
+dags_path = sys.argv[1] if len(sys.argv) > 1 else '/opt/airflow/dags'
 sys.path.insert(0, dags_path)
 
 # Change to DAGs directory for relative imports
@@ -134,18 +134,18 @@ if __name__ == "__main__":
     sys.exit(validate_dags())
 EOF
 
-# Run validation in Docker container
-echo "Running DAG import validation..."
+# Run validation in Docker container using official Apache Airflow image
+echo "Running DAG import validation using apache/airflow:${VERSION}-python3.11..."
 docker run --rm \
-    -v "${DAGS_PATH}:/usr/local/airflow/dags:ro" \
+    -v "${DAGS_PATH}:/opt/airflow/dags:ro" \
     -v "/tmp/validate_dags.py:/tmp/validate_dags.py:ro" \
     -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
     -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
-    -e AIRFLOW_HOME=/usr/local/airflow \
-    -e PYTHONPATH=/usr/local/airflow/dags \
+    -e AIRFLOW_HOME=/opt/airflow \
+    -e PYTHONPATH=/opt/airflow/dags \
     ${ENV_VARS} \
-    mwaa-local:${VERSION} \
-    python /tmp/validate_dags.py /usr/local/airflow/dags
+    apache/airflow:${VERSION}-python3.11 \
+    python /tmp/validate_dags.py /opt/airflow/dags
 
 # Copy results if they exist
 if docker run --rm -v "/tmp:/tmp" alpine test -f /tmp/validation_results.json; then

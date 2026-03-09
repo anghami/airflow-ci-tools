@@ -68,10 +68,10 @@ jobs:
             echo "${{ inputs.environment-vars }}" >> .env.custom
           fi
 
-      - name: Setup MWAA Docker environment
+      - name: Pull Apache Airflow Docker image
         run: |
-          cd .airflow-ci-tools
-          ./scripts/setup-mwaa-docker.sh --version ${{ inputs.airflow-version }}
+          echo "Pulling official Apache Airflow image..."
+          docker pull apache/airflow:${{ inputs.airflow-version }}-python3.11
 
       - name: Install requirements
         if: inputs.requirements-file != ''
