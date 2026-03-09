@@ -149,7 +149,16 @@ DOCKER_CMD="docker run --rm \
 # Add requirements file if provided
 if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
     echo "Installing additional requirements from $REQUIREMENTS_FILE..."
-    DOCKER_CMD="$DOCKER_CMD -v \"$REQUIREMENTS_FILE:/tmp/requirements.txt:ro\""
+
+    # Create a temporary requirements file with updated constraints
+    TEMP_REQUIREMENTS="/tmp/requirements_${VERSION}.txt"
+    cp "$REQUIREMENTS_FILE" "$TEMP_REQUIREMENTS"
+
+    # Update constraints URL to match Airflow version
+    sed -i.bak "s|constraints-[0-9.]*|constraints-${VERSION}|g" "$TEMP_REQUIREMENTS" 2>/dev/null || \
+    sed -i "" "s|constraints-[0-9.]*|constraints-${VERSION}|g" "$TEMP_REQUIREMENTS" 2>/dev/null || true
+
+    DOCKER_CMD="$DOCKER_CMD -v \"$TEMP_REQUIREMENTS:/tmp/requirements.txt:ro\""
 
     # Run validation with requirements installation using Airflow's recommended approach
     echo "Running DAG validation with requirements installation..."
@@ -157,6 +166,9 @@ if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
         pip install --no-cache-dir -r /tmp/requirements.txt &&
         python /tmp/validate_dags.py /opt/airflow/dags
     \""
+
+    # Clean up temp file
+    rm -f "$TEMP_REQUIREMENTS" "$TEMP_REQUIREMENTS.bak" 2>/dev/null
 else
     # Run validation without additional requirements
     echo "Running DAG import validation using apache/airflow:${VERSION}-python3.11..."
