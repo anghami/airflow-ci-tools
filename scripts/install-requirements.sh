@@ -47,8 +47,9 @@ RUN apt-get update && apt-get install -y \\
 # Copy requirements file (as root)
 COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
 
-# Process requirements to update constraint URL to match Airflow version
-RUN sed -i "s|constraints-[0-9.]\+/|constraints-${VERSION}/|g" /tmp/requirements.txt || true
+# Remove constraint line to avoid version conflicts when testing with different Airflow versions
+# The constraints are too restrictive for CI/CD testing across versions
+RUN sed -i '/^--constraint/d' /tmp/requirements.txt || true
 
 # Switch back to airflow user for pip installation
 USER airflow

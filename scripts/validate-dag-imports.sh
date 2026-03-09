@@ -150,13 +150,13 @@ DOCKER_CMD="docker run --rm \
 if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
     echo "Installing additional requirements from $REQUIREMENTS_FILE..."
 
-    # Create a temporary requirements file with updated constraints
+    # Create a temporary requirements file without constraints
     TEMP_REQUIREMENTS="/tmp/requirements_${VERSION}.txt"
     cp "$REQUIREMENTS_FILE" "$TEMP_REQUIREMENTS"
 
-    # Update constraints URL to match Airflow version
-    sed -i.bak "s|constraints-[0-9.]\+/|constraints-${VERSION}/|g" "$TEMP_REQUIREMENTS" 2>/dev/null || \
-    sed -i "" "s|constraints-[0-9.]\+/|constraints-${VERSION}/|g" "$TEMP_REQUIREMENTS" 2>/dev/null || true
+    # Remove constraint line to avoid version conflicts when testing with different Airflow versions
+    sed -i.bak '/^--constraint/d' "$TEMP_REQUIREMENTS" 2>/dev/null || \
+    sed -i "" '/^--constraint/d' "$TEMP_REQUIREMENTS" 2>/dev/null || true
 
     DOCKER_CMD="$DOCKER_CMD -v \"$TEMP_REQUIREMENTS:/tmp/requirements.txt:ro\""
 
