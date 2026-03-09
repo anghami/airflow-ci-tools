@@ -44,17 +44,23 @@ RUN apt-get update && apt-get install -y \\
     && apt-get clean \\
     && rm -rf /var/lib/apt/lists/*
 
-# Switch back to airflow user
-USER airflow
-
-# Copy requirements file
+# Copy requirements file (as root)
 COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
+
+# Switch back to airflow user for pip installation
+USER airflow
 
 # Install requirements in the virtual environment
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
+# Switch back to root for cleanup
+USER root
+
 # Clean up
 RUN rm /tmp/requirements.txt
+
+# Switch back to airflow user for final state
+USER airflow
 EOF
 
 # Build extended image with Apache Airflow base
