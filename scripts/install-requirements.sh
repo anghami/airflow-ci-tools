@@ -33,10 +33,24 @@ echo "Requirements file: ${REQUIREMENTS}"
 cat > /tmp/Dockerfile.requirements << EOF
 FROM apache/airflow:${VERSION}-python3.11
 
+# Switch to root to install system dependencies
+USER root
+
+# Install system dependencies for MySQL client and other packages
+RUN apt-get update && apt-get install -y \\
+    pkg-config \\
+    default-libmysqlclient-dev \\
+    build-essential \\
+    && apt-get clean \\
+    && rm -rf /var/lib/apt/lists/*
+
+# Switch back to airflow user
+USER airflow
+
 # Copy requirements file
 COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
 
-# Install requirements in the virtual environment (no --user flag needed)
+# Install requirements in the virtual environment
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Clean up
