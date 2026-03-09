@@ -33,18 +33,14 @@ echo "Requirements file: ${REQUIREMENTS}"
 cat > /tmp/Dockerfile.requirements << EOF
 FROM apache/airflow:${VERSION}-python3.11
 
-# Switch to root to install packages
-USER root
-
 # Copy requirements file
 COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
 
-# Install requirements
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Install requirements using --user flag to avoid permission issues
+RUN pip install --user --no-cache-dir -r /tmp/requirements.txt
 
-# Clean up and switch back to airflow user
+# Clean up
 RUN rm /tmp/requirements.txt
-USER airflow
 EOF
 
 # Build extended image with Apache Airflow base
