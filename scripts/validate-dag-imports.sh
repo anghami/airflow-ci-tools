@@ -154,7 +154,7 @@ if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
     # Run validation with requirements installation using Airflow's recommended approach
     echo "Running DAG validation with requirements installation..."
     eval "$DOCKER_CMD apache/airflow:${VERSION}-python3.11 bash -c \"
-        pip install --user --no-cache-dir -r /tmp/requirements.txt &&
+        pip install --no-cache-dir -r /tmp/requirements.txt &&
         python /tmp/validate_dags.py /opt/airflow/dags
     \""
 else

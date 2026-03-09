@@ -36,8 +36,8 @@ FROM apache/airflow:${VERSION}-python3.11
 # Copy requirements file
 COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
 
-# Install requirements using --user flag to avoid permission issues
-RUN pip install --user --no-cache-dir -r /tmp/requirements.txt
+# Install requirements in the virtual environment (no --user flag needed)
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 # Clean up
 RUN rm /tmp/requirements.txt
