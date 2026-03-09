@@ -41,10 +41,12 @@ airflow-ci-tools/
 
 ## Supported Airflow Versions
 
+- 2.11.0
+- 2.10.3
+- 2.10.1
 - 2.9.2
-- 2.8.1
-- 2.7.3
-- 2.6.3
+
+**Note**: These are the versions available in the AWS MWAA Docker images repository. If your project uses a different version (e.g., 2.7.x), use the closest available version (2.9.2) for testing.
 
 ## Usage
 
