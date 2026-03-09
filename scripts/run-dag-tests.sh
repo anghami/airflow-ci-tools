@@ -24,24 +24,28 @@ fi
 echo "Running DAG tests for Airflow ${VERSION}"
 echo "DAGs path: ${DAGS_PATH}"
 
+# Create directories for results
+mkdir -p validation-results
+mkdir -p logs
+
 # Prepare environment variables
 ENV_VARS=""
 if [ -f ".env.custom" ]; then
     ENV_VARS="--env-file $(pwd)/.env.custom"
 fi
 
-# Start Airflow container
+# Start Airflow container using official Apache Airflow image
 echo "Starting Airflow container..."
 docker run -d \
     --name airflow-test-${VERSION} \
-    -v "${DAGS_PATH}:/usr/local/airflow/dags:ro" \
+    -v "${DAGS_PATH}:/opt/airflow/dags:ro" \
     -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
     -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
-    -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////usr/local/airflow/airflow.db \
-    -e AIRFLOW_HOME=/usr/local/airflow \
-    -e PYTHONPATH=/usr/local/airflow/dags \
+    -e AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db \
+    -e AIRFLOW_HOME=/opt/airflow \
+    -e PYTHONPATH=/opt/airflow/dags \
     ${ENV_VARS} \
-    mwaa-local:${VERSION} \
+    apache/airflow:${VERSION}-python3.11 \
     bash -c "airflow db init && tail -f /dev/null"
 
 # Wait for container to be ready
