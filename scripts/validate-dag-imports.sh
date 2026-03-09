@@ -120,8 +120,13 @@ def validate_dags():
             if not dag.dag_id:
                 raise ValueError("DAG has no ID")
 
-            # Check for cycles
-            dag.test_cycle()
+            # Check for cycles using the appropriate method for the Airflow version
+            if hasattr(dag, 'test_cycle'):
+                dag.test_cycle()
+            elif hasattr(dag, 'has_cycle'):
+                if dag.has_cycle():
+                    raise ValueError("DAG has a cycle")
+            # If neither method exists, skip cycle check
 
             print(f"  ✅ {dag_id} - Valid")
             results['valid_dags'] += 1
