@@ -1,0 +1,33 @@
+# MWAA Docker repository (cloned)
+.mwaa-docker/
+
+# Validation results
+validation-results/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+.dockerignore
+*.log
+
+# Temporary files
+/tmp/
+*.tmp
+.env.custom

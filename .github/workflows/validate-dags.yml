@@ -1,0 +1,105 @@
+name: Validate Airflow DAGs
+
+on:
+  workflow_call:
+    inputs:
+      airflow-version:
+        description: 'Airflow version to use (e.g., 2.9.2)'
+        required: true
+        type: string
+      dags-path:
+        description: 'Path to DAGs directory'
+        required: false
+        type: string
+        default: 'dags'
+      python-version:
+        description: 'Python version to use'
+        required: false
+        type: string
+        default: '3.11'
+      environment-vars:
+        description: 'Additional environment variables (KEY=value format, one per line)'
+        required: false
+        type: string
+        default: ''
+      requirements-file:
+        description: 'Path to requirements.txt file'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  validate-dags:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout calling repository
+        uses: actions/checkout@v4
+
+      - name: Checkout airflow-ci-tools
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository_owner }}/airflow-ci-tools
+          path: .airflow-ci-tools
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-airflow-${{ inputs.airflow-version }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-airflow-${{ inputs.airflow-version }}-
+
+      - name: Prepare environment
+        run: |
+          # Export environment variables
+          echo "AIRFLOW_VERSION=${{ inputs.airflow-version }}" >> $GITHUB_ENV
+          echo "DAGS_PATH=${{ github.workspace }}/${{ inputs.dags-path }}" >> $GITHUB_ENV
+
+          # Process custom environment variables
+          if [ -n "${{ inputs.environment-vars }}" ]; then
+            echo "${{ inputs.environment-vars }}" >> .env.custom
+          fi
+
+      - name: Setup MWAA Docker environment
+        run: |
+          cd .airflow-ci-tools
+          ./scripts/setup-mwaa-docker.sh --version ${{ inputs.airflow-version }}
+
+      - name: Install requirements
+        if: inputs.requirements-file != ''
+        run: |
+          cd .airflow-ci-tools
+          ./scripts/install-requirements.sh \
+            --version ${{ inputs.airflow-version }} \
+            --requirements ${{ github.workspace }}/${{ inputs.requirements-file }}
+
+      - name: Validate DAG imports
+        run: |
+          cd .airflow-ci-tools
+          ./scripts/validate-dag-imports.sh \
+            --version ${{ inputs.airflow-version }} \
+            --dags-path ${{ env.DAGS_PATH }}
+
+      - name: Run DAG tests
+        run: |
+          cd .airflow-ci-tools
+          ./scripts/run-dag-tests.sh \
+            --version ${{ inputs.airflow-version }} \
+            --dags-path ${{ env.DAGS_PATH }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: dag-validation-results
+          path: |
+            .airflow-ci-tools/validation-results/
+            .airflow-ci-tools/logs/
