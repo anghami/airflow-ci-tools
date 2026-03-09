@@ -73,20 +73,25 @@ jobs:
           echo "Pulling official Apache Airflow image..."
           docker pull apache/airflow:${{ inputs.airflow-version }}-python3.11
 
-      - name: Install requirements
+      - name: Prepare requirements (if provided)
         if: inputs.requirements-file != ''
         run: |
-          cd .airflow-ci-tools
-          ./scripts/install-requirements.sh \
-            --version ${{ inputs.airflow-version }} \
-            --requirements ${{ github.workspace }}/${{ inputs.requirements-file }}
+          echo "Requirements file provided: ${{ inputs.requirements-file }}"
+          echo "Will install requirements during validation"
 
       - name: Validate DAG imports
         run: |
           cd .airflow-ci-tools
-          ./scripts/validate-dag-imports.sh \
-            --version ${{ inputs.airflow-version }} \
-            --dags-path ${{ env.DAGS_PATH }}
+          if [ -n "${{ inputs.requirements-file }}" ]; then
+            ./scripts/validate-dag-imports.sh \
+              --version ${{ inputs.airflow-version }} \
+              --dags-path ${{ env.DAGS_PATH }} \
+              --requirements ${{ github.workspace }}/${{ inputs.requirements-file }}
+          else
+            ./scripts/validate-dag-imports.sh \
+              --version ${{ inputs.airflow-version }} \
+              --dags-path ${{ env.DAGS_PATH }}
+          fi
 
       - name: Run DAG tests
         run: |

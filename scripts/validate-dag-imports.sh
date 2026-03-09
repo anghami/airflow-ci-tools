@@ -6,6 +6,7 @@ set -e
 VERSION=""
 DAGS_PATH=""
 ENV_FILE=""
+REQUIREMENTS_FILE=""
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
@@ -13,6 +14,7 @@ while [[ "$#" -gt 0 ]]; do
         --version) VERSION="$2"; shift ;;
         --dags-path) DAGS_PATH="$2"; shift ;;
         --env-file) ENV_FILE="$2"; shift ;;
+        --requirements) REQUIREMENTS_FILE="$2"; shift ;;
         *) echo "Unknown parameter: $1"; exit 1 ;;
     esac
     shift
@@ -134,18 +136,32 @@ if __name__ == "__main__":
     sys.exit(validate_dags())
 EOF
 
-# Run validation in Docker container using official Apache Airflow image
-echo "Running DAG import validation using apache/airflow:${VERSION}-python3.11..."
-docker run --rm \
-    -v "${DAGS_PATH}:/opt/airflow/dags:ro" \
-    -v "/tmp/validate_dags.py:/tmp/validate_dags.py:ro" \
+# Prepare Docker command
+DOCKER_CMD="docker run --rm \
+    -v \"${DAGS_PATH}:/opt/airflow/dags:ro\" \
+    -v \"/tmp/validate_dags.py:/tmp/validate_dags.py:ro\" \
     -e AIRFLOW__CORE__LOAD_EXAMPLES=False \
     -e AIRFLOW__CORE__EXECUTOR=LocalExecutor \
     -e AIRFLOW_HOME=/opt/airflow \
     -e PYTHONPATH=/opt/airflow/dags \
-    ${ENV_VARS} \
-    apache/airflow:${VERSION}-python3.11 \
-    python /tmp/validate_dags.py /opt/airflow/dags
+    ${ENV_VARS}"
+
+# Add requirements file if provided
+if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
+    echo "Installing additional requirements from $REQUIREMENTS_FILE..."
+    DOCKER_CMD="$DOCKER_CMD -v \"$REQUIREMENTS_FILE:/tmp/requirements.txt:ro\""
+
+    # Run validation with requirements installation
+    echo "Running DAG validation with requirements installation..."
+    eval "$DOCKER_CMD apache/airflow:${VERSION}-python3.11 bash -c \"
+        pip install --no-cache-dir -r /tmp/requirements.txt &&
+        python /tmp/validate_dags.py /opt/airflow/dags
+    \""
+else
+    # Run validation without additional requirements
+    echo "Running DAG import validation using apache/airflow:${VERSION}-python3.11..."
+    eval "$DOCKER_CMD apache/airflow:${VERSION}-python3.11 python /tmp/validate_dags.py /opt/airflow/dags"
+fi
 
 # Copy results if they exist
 if docker run --rm -v "/tmp:/tmp" alpine test -f /tmp/validation_results.json; then

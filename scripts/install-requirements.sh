@@ -29,9 +29,12 @@ fi
 echo "Installing requirements for Airflow ${VERSION}"
 echo "Requirements file: ${REQUIREMENTS}"
 
-# Create a Dockerfile that extends MWAA image with requirements
+# Create a Dockerfile that extends Apache Airflow image with requirements
 cat > /tmp/Dockerfile.requirements << EOF
-FROM mwaa-local:${VERSION}
+FROM apache/airflow:${VERSION}-python3.11
+
+# Switch to root to install packages
+USER root
 
 # Copy requirements file
 COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
@@ -39,12 +42,13 @@ COPY $(basename ${REQUIREMENTS}) /tmp/requirements.txt
 # Install requirements
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Clean up
+# Clean up and switch back to airflow user
 RUN rm /tmp/requirements.txt
+USER airflow
 EOF
 
-# Build extended image
+# Build extended image with Apache Airflow base
 cp "${REQUIREMENTS}" /tmp/$(basename ${REQUIREMENTS})
-docker build -t mwaa-local:${VERSION} -f /tmp/Dockerfile.requirements /tmp/
+docker build -t apache/airflow:${VERSION}-python3.11 -f /tmp/Dockerfile.requirements /tmp/
 
 echo "Requirements installed successfully"
