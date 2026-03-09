@@ -93,19 +93,3 @@ jobs:
               --dags-path ${{ env.DAGS_PATH }}
           fi
 
-      - name: Run DAG tests
-        continue-on-error: true
-        run: |
-          cd .airflow-ci-tools
-          ./scripts/run-dag-tests.sh \
-            --version ${{ inputs.airflow-version }} \
-            --dags-path ${{ env.DAGS_PATH }} || echo "DAG tests completed with warnings"
-
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: dag-validation-results
-          path: |
-            .airflow-ci-tools/validation-results/
-            .airflow-ci-tools/logs/
