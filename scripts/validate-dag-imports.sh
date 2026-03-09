@@ -45,6 +45,7 @@ import os
 import traceback
 from pathlib import Path
 import json
+from unittest.mock import patch, MagicMock
 
 # Add DAGs path to Python path
 dags_path = sys.argv[1] if len(sys.argv) > 1 else '/opt/airflow/dags'
@@ -57,9 +58,28 @@ os.chdir(dags_path)
 try:
     from airflow import DAG
     from airflow.models import DagBag
+    from airflow.models import Variable
 except ImportError as e:
     print(f"Failed to import Airflow: {e}")
     sys.exit(1)
+
+# Mock Variable.get to return default values for CI/CD validation
+original_variable_get = Variable.get
+
+def mock_variable_get(key, default=None, deserialize_json=False):
+    """Mock Variable.get to return defaults for CI/CD"""
+    try:
+        return original_variable_get(key, default=default, deserialize_json=deserialize_json)
+    except Exception:
+        # Return a sensible default for CI/CD
+        if default is not None:
+            return default
+        if deserialize_json:
+            return {}  # Return empty dict for JSON variables
+        return "mock_value"  # Return a mock string for non-JSON variables
+
+# Patch Variable.get globally
+Variable.get = mock_variable_get
 
 def validate_dags():
     """Validate all DAGs in the specified path"""
@@ -164,6 +184,7 @@ if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
     echo "Running DAG validation with requirements installation..."
     eval "$DOCKER_CMD apache/airflow:${VERSION}-python3.11 bash -c \"
         pip install --no-cache-dir -r /tmp/requirements.txt &&
+        airflow db init &&
         python /tmp/validate_dags.py /opt/airflow/dags
     \""
 
@@ -172,7 +193,10 @@ if [ -n "$REQUIREMENTS_FILE" ] && [ -f "$REQUIREMENTS_FILE" ]; then
 else
     # Run validation without additional requirements
     echo "Running DAG import validation using apache/airflow:${VERSION}-python3.11..."
-    eval "$DOCKER_CMD apache/airflow:${VERSION}-python3.11 python /tmp/validate_dags.py /opt/airflow/dags"
+    eval "$DOCKER_CMD apache/airflow:${VERSION}-python3.11 bash -c \"
+        airflow db init &&
+        python /tmp/validate_dags.py /opt/airflow/dags
+    \""
 fi
 
 # Copy results if they exist
