@@ -30,7 +30,7 @@ on:
 
 jobs:
   validate-dags:
-    runs-on: k8s-default
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout calling repository
         uses: actions/checkout@v4
